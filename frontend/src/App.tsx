@@ -1,16 +1,26 @@
 import { Outlet } from "react-router";
 import Header from "./components/Header";
-import { AuthProvider } from "./context/AuthContext";
- 
-function App(){
+import { useDispatch } from "react-redux";
+import { useEffect } from "react";
+import { setUser } from "./store/slice/User.slice";
 
-  // console.log(import.meta.env.VITE_APP_BACKEND_URI);
-  
+function App() {
+    const dispatch = useDispatch();
 
-  return <AuthProvider>
-  <Header/>
-      <Outlet/>
-  </AuthProvider>
+    // Persist Login: Check localStorage on app load
+    useEffect(() => {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+            dispatch(setUser(JSON.parse(storedUser)));
+        }
+    }, [dispatch]);
+
+    return (
+        <>
+            <Header />
+            <Outlet />
+        </>
+    );
 }
 
 export default App;

@@ -2,7 +2,7 @@ const mongoose = require("mongoose")
 
 exports.ConnectDB= async()=>{
     try {
-       await mongoose.connect("mongodb+srv://wedToMe:RBoSDXhF7kebuq0e@mernstackkrishna.15kdm6r.mongodb.net/wedToMe")
+       await mongoose.connect("mongodb+srv://chetan:chetan309204@cluster0.2g44vys.mongodb.net/?appName=Cluster0")
         console.log(`the db is connect with ${mongoose.connection.host}`);
         
     } catch (error) {
