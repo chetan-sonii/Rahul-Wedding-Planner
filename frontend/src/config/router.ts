@@ -5,7 +5,8 @@ import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import ForgetPasswordPage from "../pages/ForgetPage";
 import AboutPage from "../pages/AboutPage"; // Import New Page
-import ContactPage from "../pages/ContactPage"; // Import New Page
+import ContactPage from "../pages/ContactPage";
+import DashboardPage from "../pages/DashboardPage"; // Import New Page
 
 export const router = createBrowserRouter([
     {
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
             // New Routes
             { path:'about', Component:AboutPage },
             { path:'contact', Component:ContactPage },
+            { path:'dashboard', Component:DashboardPage },
         ]
     }
 ])

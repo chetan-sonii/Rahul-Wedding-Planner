@@ -18,7 +18,7 @@ app.use("/api/v1", require("./routes"))
 
 // 404 handler (must be AFTER routes)
 app.use((req, res, next) => {
-    next(new ApiError(404, "Hello"))
+    next(new ApiError(404, `${req.method} ${req.originalUrl} not found`));
 })
 
 // error handler
