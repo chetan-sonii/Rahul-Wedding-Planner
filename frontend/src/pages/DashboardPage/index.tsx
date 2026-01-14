@@ -1,198 +1,241 @@
-import { useSelector } from 'react-redux';
-import { FaHeart, FaListUl, FaRegUser } from 'react-icons/fa'; // Removed FaSignOutAlt
-import { MdDashboard } from 'react-icons/md';
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { UserCredentials } from '../../types/auth';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router';
+import { AxiosClient } from '../../config/axiosClient';
+import { FaHome, FaTasks, FaHeart, FaUserCog, FaSignOutAlt, FaCalendarAlt, FaSpinner } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// 1. Define the Redux State Structure to fix 'state: any' error
-interface RootState {
-    UserSlice: {
-        user: UserCredentials | undefined;
-    };
+// Import the sub-components
+import ChecklistTab from './tabs/ChecklistTab';
+import VendorsTab from './tabs/VendorsTab';
+import OverviewTab from './tabs/OverviewTab';
+import SettingsTab from './tabs/SettingsTab';
+
+// --- Types ---
+type ChecklistAction = 'add' | 'toggle' | 'delete' | 'edit';
+
+interface ChecklistExtras {
+    dueDate?: string;
+    note?: string;
+}
+
+interface ChecklistItem {
+    _id: string;
+    text: string;
+    isCompleted: boolean;
+    dueDate?: string;
+    note?: string;
+}
+
+interface ProfileUpdateData {
+    name: string;
+    partnerName: string;
+    weddingDate: string;
+    budget: number;
+    guestCount: number;
+}
+
+interface FavoriteVendor {
+    _id: string;
+    name: string;
+    category: string;
+    city: string;
+    price: number;
+    rating: number;
+    image: string;
+}
+
+interface UserData {
+    name: string;
+    email: string;
+    partnerName: string;
+    weddingDate: string;
+    budget: number;
+    guestCount: number;
+    favorites: FavoriteVendor[];
+    checklist: ChecklistItem[];
 }
 
 const DashboardPage = () => {
-    // 2. Apply the type to useSelector
-    const { user } = useSelector((state: RootState) => state.UserSlice);
-    const [activeTab, setActiveTab] = useState('overview');
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    const menuItems = [
-        { id: 'overview', label: 'Overview', icon: <MdDashboard /> },
-        { id: 'shortlist', label: 'Shortlisted Vendors', icon: <FaHeart /> },
-        { id: 'profile', label: 'My Profile', icon: <FaRegUser /> },
-        { id: 'checklist', label: 'Wedding Checklist', icon: <FaListUl /> },
-    ];
+    // TAB LOGIC: Read from URL, default to 'overview'
+    const activeTab = searchParams.get('tab') || 'overview';
+
+    const [user, setUser] = useState<UserData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    // Helper to switch tabs
+    const handleTabChange = (tab: string) => {
+        setSearchParams({ tab });
+    };
+
+    const getAuthHeaders = () => ({
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    });
+
+    // 1. Fetch Dashboard Data
+    const fetchDashboard = async () => {
+        try {
+            const res = await AxiosClient.get("/user/dashboard", getAuthHeaders());
+            setUser(res.data.user);
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err.message);
+            }
+            navigate("/login");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchDashboard(); }, []);
+
+    // 2. Checklist Handler
+    const handleChecklistUpdate = async (
+        action: ChecklistAction,
+        text?: string,
+        itemId?: string,
+        extra?: ChecklistExtras
+    ) => {
+        try {
+            const payload = { action, text, itemId, ...extra };
+            const res = await AxiosClient.post("/user/checklist", payload, getAuthHeaders());
+            if (user) setUser({ ...user, checklist: res.data.checklist });
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to update checklist");
+        }
+    };
+
+    // 3. Remove Favorite Handler
+    const handleRemoveFavorite = async (id: string) => {
+        try {
+            await AxiosClient.post("/user/favorites", { vendorId: id }, getAuthHeaders());
+            toast.success("Removed from shortlist");
+            fetchDashboard(); // Refresh to update list and stats
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err.message);
+            }
+            toast.error("Failed to remove vendor");
+        }
+    };
+
+    // 4. Profile Update Handler
+    const handleProfileUpdate = async (formData: ProfileUpdateData) => {
+        try {
+            await AxiosClient.patch("/user/profile", formData, getAuthHeaders());
+            toast.success("Profile updated successfully!");
+            fetchDashboard(); // Refresh to show new name/date/budget
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                toast.error(err.message);
+            } else {
+                toast.error("An unexpected error occurred");
+            }
+        }
+    };
+
+    // Countdown Helper
+    const getCountdown = () => {
+        if (!user?.weddingDate) return 0;
+        const diff = new Date(user.weddingDate).getTime() - new Date().getTime();
+        return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    };
+
+    if (loading) return <div className="h-screen flex items-center justify-center"><FaSpinner className="animate-spin text-3xl text-primary" /></div>;
+    if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-gray-50 flex font-sans">
-
-            {/* Sidebar (Desktop) */}
-            <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
-                <div className="p-8 border-b border-gray-100">
-                    <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center text-2xl text-primary font-bold mx-auto mb-4">
-                        {user?.name?.charAt(0).toUpperCase() || "U"}
-                    </div>
-                    <h2 className="text-center font-heading font-bold text-gray-800 truncate px-2">
-                        {user?.name || "User"}
-                    </h2>
-                    <p className="text-center text-xs text-gray-500 mt-1 truncate px-2">
-                        {user?.email}
-                    </p>
+        <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+            {/* SIDEBAR */}
+            <aside className="w-72 bg-white border-r border-gray-200 hidden lg:flex flex-col">
+                <div className="p-8 pb-12">
+                    <h2 className="text-2xl font-bold font-heading text-primary">SubhVivah</h2>
                 </div>
-
-                <nav className="flex-1 p-4 space-y-2">
-                    {menuItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
-                                activeTab === item.id
-                                    ? 'bg-pink-50 text-primary'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                            }`}
-                        >
-                            <span className="text-lg">{item.icon}</span>
-                            {item.label}
-                        </button>
-                    ))}
+                <nav className="flex-1 px-4 space-y-1">
+                    <SidebarItem icon={<FaHome />} label="Overview" active={activeTab === 'overview'} onClick={() => handleTabChange('overview')} />
+                    <SidebarItem icon={<FaTasks />} label="Checklist" active={activeTab === 'checklist'} onClick={() => handleTabChange('checklist')} />
+                    <SidebarItem icon={<FaHeart />} label="Shortlist" active={activeTab === 'vendors'} onClick={() => handleTabChange('vendors')} />
+                    <SidebarItem icon={<FaUserCog />} label="Settings" active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} />
                 </nav>
+                <div className="p-6 border-t border-gray-100">
+                    <button onClick={() => { localStorage.removeItem('token'); navigate('/'); }} className="flex items-center gap-3 text-gray-500 hover:text-red-500 px-4 py-3 w-full transition-colors font-semibold text-sm">
+                        <FaSignOutAlt /> Log Out
+                    </button>
+                </div>
             </aside>
 
-            {/* Main Content Area */}
-            <main className="flex-1 p-6 md:p-10">
-                <div className="max-w-4xl mx-auto">
-
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold font-heading text-gray-800">
-                            {activeTab === 'overview' && "Dashboard Overview"}
-                            {activeTab === 'shortlist' && "My Shortlist"}
-                            {activeTab === 'profile' && "Profile Settings"}
-                            {activeTab === 'checklist' && "My Checklist"}
-                        </h1>
-                        <p className="text-gray-500">Welcome to your wedding planning hub.</p>
+            {/* MAIN CONTENT */}
+            <main className="flex-1 overflow-y-auto p-8 lg:p-12">
+                <div className="max-w-6xl mx-auto">
+                    {/* Header */}
+                    <div className="flex justify-between items-end mb-10">
+                        <div>
+                            <span className="text-primary font-bold text-xs uppercase tracking-widest">Dashboard</span>
+                            <h1 className="text-4xl font-bold text-gray-900 font-heading mt-1">Hello, {user.name.split(' ')[0]}</h1>
+                        </div>
+                        <div className="bg-white px-6 py-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                            <div className="p-3 bg-pink-50 rounded-xl text-primary"><FaCalendarAlt /></div>
+                            <div>
+                                <p className="text-2xl font-bold text-gray-800 leading-none">{getCountdown() > 0 ? `${getCountdown()} Days` : "Big Day!"}</p>
+                                <p className="text-xs text-gray-400 font-medium mt-1 uppercase">To the Wedding</p>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Content Switcher */}
-                    <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        {activeTab === 'overview' && <OverviewTab user={user} />}
-                        {activeTab === 'shortlist' && <ShortlistTab />}
-                        {activeTab === 'profile' && <ProfileTab user={user} />}
-                        {activeTab === 'checklist' && <ChecklistTab />}
-                    </motion.div>
+                    <AnimatePresence mode="wait">
+                        {/* OVERVIEW TAB */}
+                        {activeTab === 'overview' && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                <OverviewTab user={user} onTabChange={handleTabChange} />
+                            </motion.div>
+                        )}
 
+                        {/* CHECKLIST TAB */}
+                        {activeTab === 'checklist' && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                <ChecklistTab checklist={user.checklist} onUpdate={handleChecklistUpdate} />
+                            </motion.div>
+                        )}
+
+                        {/* VENDORS TAB */}
+                        {activeTab === 'vendors' && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                <VendorsTab vendors={user.favorites} onRemove={handleRemoveFavorite} />
+                            </motion.div>
+                        )}
+
+                        {/* SETTINGS TAB */}
+                        {activeTab === 'settings' && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                <SettingsTab user={user} onUpdateProfile={handleProfileUpdate} />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </main>
         </div>
     );
 };
 
-// --- Sub Components ---
-
-// 3. Typed the props correctly: { user: UserCredentials | undefined }
-const OverviewTab = ({ user }: { user: UserCredentials | undefined }) => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Welcome Banner - Now actually uses 'user' to prevent "unused variable" error */}
-        <div className="col-span-1 md:col-span-3 bg-gradient-to-r from-primary to-pink-400 rounded-2xl p-8 text-white relative overflow-hidden shadow-lg">
-            <div className="relative z-10">
-                <h2 className="text-2xl font-bold font-heading">
-                    Welcome back, {user?.name?.split(' ')[0] || "Planner"}!
-                </h2>
-                <p className="mt-2 opacity-90 max-w-lg">
-                    You have 0 pending tasks. Start browsing vendors to create your dream team.
-                </p>
-                <button className="mt-6 bg-white text-primary px-6 py-2 rounded-full font-semibold text-sm hover:bg-gray-100 transition-colors shadow-sm">
-                    Browse Vendors
-                </button>
-            </div>
-            <div className="absolute -right-10 -bottom-20 w-64 h-64 bg-white/20 rounded-full blur-2xl" />
-        </div>
-
-        {/* Stats Cards */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Shortlisted</h3>
-            <p className="text-3xl font-bold text-gray-800 mt-2">0</p>
-            <p className="text-xs text-pink-500 mt-1">Vendors saved</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Inquiries</h3>
-            <p className="text-3xl font-bold text-gray-800 mt-2">0</p>
-            <p className="text-xs text-blue-500 mt-1">Messages sent</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider">Days to go</h3>
-            <p className="text-3xl font-bold text-gray-800 mt-2">TBD</p>
-            <p className="text-xs text-green-500 mt-1">Set your date!</p>
-        </div>
-    </div>
-);
-
-const ShortlistTab = () => (
-    <div className="bg-white p-12 rounded-xl shadow-sm text-center border border-gray-100">
-        <div className="bg-pink-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FaHeart className="text-3xl text-primary" />
-        </div>
-        <h3 className="text-xl font-bold text-gray-800">Your shortlist is empty</h3>
-        <p className="text-gray-500 mt-2 max-w-sm mx-auto">
-            Go explore venues, photographers, and makeup artists to save them here!
-        </p>
-    </div>
-);
-
-// 4. Typed props correctly here too
-const ProfileTab = ({ user }: { user: UserCredentials | undefined }) => (
-    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 max-w-2xl">
-        <div className="grid grid-cols-1 gap-6">
-            <div>
-                <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                <input
-                    type="text"
-                    value={user?.name || ''}
-                    disabled
-                    className="mt-1 block w-full bg-gray-50 border border-gray-300 rounded-md py-2 px-3 text-gray-500 cursor-not-allowed"
-                />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                <input
-                    type="text"
-                    value={user?.email || ''}
-                    disabled
-                    className="mt-1 block w-full bg-gray-50 border border-gray-300 rounded-md py-2 px-3 text-gray-500 cursor-not-allowed"
-                />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-                <input
-                    type="text"
-                    placeholder="Add phone number"
-                    className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-primary focus:border-primary outline-none transition-shadow focus:ring-1"
-                />
-            </div>
-            <button className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-pink-700 transition w-max font-medium">
-                Save Changes
-            </button>
-        </div>
-    </div>
-);
-
-const ChecklistTab = () => (
-    <div className="space-y-4">
-        {["Book Venue", "Finalize Guest List", "Book Photographer", "Buy Wedding Ring", "Send Invitations"].map((item, i) => (
-            <div key={i} className="flex items-center p-4 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer group">
-                <input
-                    type="checkbox"
-                    className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary cursor-pointer accent-pink-600"
-                />
-                <span className="ml-3 text-gray-700 font-medium group-hover:text-primary transition-colors">{item}</span>
-            </div>
-        ))}
-    </div>
+// UI Component (Fixed Type)
+const SidebarItem = ({
+                         icon,
+                         label,
+                         active,
+                         onClick
+                     }: {
+    icon: React.ReactNode, // Fixed: ReactNode instead of any
+    label: string,
+    active: boolean,
+    onClick: () => void
+}) => (
+    <button onClick={onClick} className={`flex items-center gap-4 w-full px-6 py-4 rounded-2xl text-sm font-bold transition-all ${active ? 'bg-pink-50 text-primary shadow-sm shadow-pink-50' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}>
+        <span className="text-lg">{icon}</span> {label}
+    </button>
 );
 
 export default DashboardPage;

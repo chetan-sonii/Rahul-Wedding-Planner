@@ -4,21 +4,36 @@ import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import ForgetPasswordPage from "../pages/ForgetPage";
-import AboutPage from "../pages/AboutPage"; // Import New Page
-import ContactPage from "../pages/ContactPage"; // Import New Page
+import DashboardPage from "../pages/DashboardPage";
+import AboutPage from "../pages/AboutPage";
+import ContactPage from "../pages/ContactPage";
+import ProtectedRoutes from "./ProtectedRoutes";
+import VendorListingPage from "../pages/VendorListingPage"; // Import it
 
 export const router = createBrowserRouter([
     {
-        path:'/',
-        Component:App,
-        children:[
-            { path:'', Component:HomePage },
-            { path:'login', Component:LoginPage },
-            { path:'register', Component:RegisterPage },
-            { path:'forget', Component:ForgetPasswordPage },
-            // New Routes
-            { path:'about', Component:AboutPage },
-            { path:'contact', Component:ContactPage },
+        path: '/',
+        Component: App,
+        children: [
+            { path: '', Component: HomePage },
+            { path: 'login', Component: LoginPage },
+            { path: 'register', Component: RegisterPage },
+            { path: 'forget', Component: ForgetPasswordPage },
+            { path: 'about', Component: AboutPage },
+            { path: 'contact', Component: ContactPage },
+            {
+                Component: ProtectedRoutes,
+                children: [
+                    {
+                        path: 'dashboard',
+                        Component: DashboardPage
+                    }
+                ]
+            },
+            {
+                path: 'vendors',
+                Component: VendorListingPage
+            },
         ]
     }
-])
+]);

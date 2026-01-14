@@ -53,6 +53,7 @@ const LoginPage = () => {
 
                 toast.success("Welcome back!");
                 helper.resetForm();
+                navigate('/dashboard');
 
                 // 3. Redirect to Dashboard
                 navigate('/dashboard');

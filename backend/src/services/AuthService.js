@@ -1,37 +1,35 @@
-// backend/src/services/AuthService.js
-const httpStatus = require("http-status");
-const { User } = require("../models");
+const { User } = require("../models"); // Match the name in models/index.js
 const ApiError = require("../utils/ApiError");
+const httpStatus = require("http-status"); // Fix: Removed {default: httpStatus}
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretweddingkey";
+const JWT_SECRET = process.env.JWT_SECRET || "your_wedding_planner_secret";
 
 class AuthService {
     static async registerUser(body) {
-        const { email, password, name } = body;
+        const { name, email, password } = body;
 
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "User already exists");
+        const checkExist = await User.findOne({ email: email.toLowerCase() });
+        if (checkExist) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "User Already Exists");
         }
 
-        const user = await User.create({ name, email, password });
-        const userResponse = user.toObject();
-        delete userResponse.password;
+        await User.create({ name, email, password });
 
-        return { msg: "Registered Successfully", user: userResponse };
+        return { msg: "User Registered Successfully" };
     }
 
     static async loginUser(body) {
         const { email, password } = body;
+        const user = await User.findOne({ email: email.toLowerCase() });
 
-        const user = await User.findOne({ email });
-        if (!user || !(await user.isPasswordCorrect(password))) {
-            throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid email or password");
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid Credentials");
         }
 
         const token = jwt.sign(
-            { id: user._id, email: user.email, role: user.role },
+            { id: user._id, email: user.email },
             JWT_SECRET,
             { expiresIn: "1d" }
         );
@@ -39,7 +37,11 @@ class AuthService {
         const userResponse = user.toObject();
         delete userResponse.password;
 
-        return { msg: "Login Successful", token, user: userResponse };
+        return {
+            msg: "Login Success",
+            token,
+            user: userResponse
+        };
     }
 }
 
