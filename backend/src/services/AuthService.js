@@ -1,52 +1,66 @@
-const { UserModel } = require("../models");
+const httpStatus = require("http-status");
+const { User } = require("../models"); // Ensure index.js exports User
 const ApiError = require("../utils/ApiError");
-const {default:httpStatus} = require("http-status");
-const bcrypt = require("bcrypt")
-class AuthService{
+const jwt = require("jsonwebtoken");
 
-    static async registerUser(body){
+// Use a secret key (In production, put this in .env)
+const JWT_SECRET = process.env.JWT_SECRET || "supersecretweddingkey";
 
-        const {name,email,password} =body
-        // check user is already exist or not 
-       
-        const checkExist = await UserModel.findOne({email:email.toLowerCase()})
-        if(checkExist){
-            throw new ApiError(httpStatus.BAD_REQUEST,"User Is Already Exist with this Email Account ")
+class AuthService {
+    static async registerUser(body) {
+        const { email, password, name } = body;
+
+        // 1. Check if user exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "User already exists");
         }
-        // create new user
-        await UserModel.create({
-            name,
-            email,
-            password
-        })
-    
-            // email for verification
-            // jwt token for login
+
+        // 2. Create User
+        const user = await User.create({ name, email, password });
+
+        // 3. Remove password from response
+        const userResponse = user.toObject();
+        delete userResponse.password;
 
         return {
-            "msg":"User Register Successfully"
-        }
+            msg: "Registered Successfully",
+            user: userResponse
+        };
     }
 
+    static async loginUser(body) {
+        const { email, password } = body;
 
-    static async loginUser(body){
-        const {email,password} = body
-        const user = await UserModel.findOne({email:email.toLowerCase()})
-        if(!user){
-            throw new ApiError(httpStatus.BAD_REQUEST,"User Is Not Exist with this Email Account ")
-        }
-        const isMatch = await bcrypt.compare(password,user.password)
-        if(!isMatch){
-            throw new ApiError(httpStatus.BAD_REQUEST,"Invalid Credentials")
+        // 1. Find User
+        const user = await User.findOne({ email });
+        if (!user) {
+            throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid email or password");
         }
 
-        // generate jwt token
-        // return token
+        // 2. Check Password
+        const isMatch = await user.isPasswordCorrect(password);
+        if (!isMatch) {
+            throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid email or password");
+        }
+
+        // 3. Generate Token
+        const token = jwt.sign(
+            { id: user._id, email: user.email, role: user.role },
+            JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
+        // 4. Return Data
+        const userResponse = user.toObject();
+        delete userResponse.password;
+
         return {
-            msg:"Login Success",
-            "token":null
-        }
+            msg: "Login Successful",
+            token,
+            user: userResponse
+        };
     }
 }
 
-module.exports = AuthService;
+module.exports.AuthService = require("./AuthService");

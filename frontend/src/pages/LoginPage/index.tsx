@@ -4,21 +4,18 @@ import { RiMailSendLine, RiLockPasswordLine } from 'react-icons/ri';
 import { CgSpinner } from 'react-icons/cg';
 import * as yup from 'yup';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
-import { Link } from 'react-router'; // Assuming react-router v6/v7
-// import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { AxiosClient } from '../../config/axiosClient';
-// import { useAuth } from '../../context/AuthContext';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../../store/slice/User.slice';
-import { AxiosError} from "axios";
+import { AxiosError } from 'axios';
 
 const LoginPage = () => {
     const [isHide, setIsHide] = useState(true);
     const [loading, setLoading] = useState(false);
-    // const { login } = useAuth();
-    // const navigate = useNavigate();
+    const navigate = useNavigate();
     const dispatch = useDispatch();
 
     interface LoginFormType {
@@ -43,22 +40,30 @@ const LoginPage = () => {
         try {
             setLoading(true);
             const response = await AxiosClient.post("/auth/login", values);
-            const data = await response.data; // Expected: { user: { name, email, _id }, token: "..." }
+            const data = await response.data;
 
-            // 1. Save to LocalStorage (for persistence)
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("user", JSON.stringify(data.user));
+            // SAFETY CHECK: Ensure data.user exists before saving
+            if (data?.user && data?.token) {
+                // 1. Save to LocalStorage
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("user", JSON.stringify(data.user));
 
-            // 2. Dispatch to Redux
-            dispatch(setUser(data.user));
+                // 2. Dispatch to Redux (Updates Navbar)
+                dispatch(setUser(data.user));
 
-            toast.success("Welcome back!");
-            // navigate('/'); // Optional redirect
+                toast.success("Welcome back!");
+                helper.resetForm();
 
-            helper.resetForm();
+                // 3. Redirect to Dashboard
+                navigate('/dashboard');
+            } else {
+                console.error("Login response missing user data:", data);
+                toast.error("Login failed: server response missing user data");
+            }
+
         } catch (error) {
             const err = error as AxiosError<{ error: string }>;
-            const errorMsg = err.response?.data?.error || "Something went wrong";
+            const errorMsg = err.response?.data?.error || "Invalid Email or Password";
             toast.error(errorMsg);
         } finally {
             setLoading(false);
@@ -68,11 +73,11 @@ const LoginPage = () => {
     return (
         <div className="min-h-screen flex bg-white">
 
-            {/* Left Side - Image (Hidden on Mobile) */}
+            {/* Left Side - Image */}
             <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
-                <div className="absolute inset-0 bg-black/20 z-10" /> {/* Overlay */}
+                <div className="absolute inset-0 bg-black/20 z-10" />
                 <img
-                    src='/images/2.jpg'
+                    src='/images/1.jpg'
                     alt="Wedding Couple"
                     className="w-full h-full object-cover"
                 />

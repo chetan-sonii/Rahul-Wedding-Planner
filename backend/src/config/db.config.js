@@ -1,12 +1,11 @@
 const mongoose = require("mongoose")
 
-exports.ConnectDB= async()=>{
+exports.ConnectDB = async () => {
     try {
-       await mongoose.connect("mongodb+srv://chetan:chetan309204@cluster0.2g44vys.mongodb.net/?appName=Cluster0")
-        console.log(`the db is connect with ${mongoose.connection.host}`);
-        
+        await mongoose.connect("mongodb://127.0.0.1:27017/Rahul_Wedding_Planner")
+        console.log(`MongoDB connected: ${mongoose.connection.host}`)
     } catch (error) {
-        mongoose.disconnect()
+        console.error("MongoDB connection failed", error)
         process.exit(1)
     }
 }

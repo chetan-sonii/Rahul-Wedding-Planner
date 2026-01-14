@@ -4,16 +4,16 @@ import { RiMailSendLine, RiLockPasswordLine } from 'react-icons/ri';
 import { CgSpinner } from 'react-icons/cg';
 import * as yup from 'yup';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router'; // Correct import for v7
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { AxiosClient } from '../../config/axiosClient';
 import { AxiosError } from 'axios';
 
-
 const RegisterPage = () => {
     const [isHide, setIsHide] = useState(true);
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     interface RegisterFormProps {
         name: string;
@@ -43,18 +43,15 @@ const RegisterPage = () => {
             const response = await AxiosClient.post("/auth/register", values);
             const data = await response.data;
 
-            toast.success(data.msg);
+            toast.success(data.msg || "Registration Successful! Please Login.");
             helper.resetForm();
-            // Redirect logic here if needed
 
-            // Inside onSubmitHandler...
+            // Redirect to Login Page
+            navigate('/login');
 
         } catch (error) {
-            // Cast the error to an AxiosError containing a specific response structure
             const err = error as AxiosError<{ error: string }>;
-
-            // Now TypeScript knows 'err.response.data' exists
-            const errorMsg = err.response?.data?.error || "Something went wrong";
+            const errorMsg = err.response?.data?.error || "Registration failed";
             toast.error(errorMsg);
         } finally {
             setLoading(false);
@@ -64,16 +61,16 @@ const RegisterPage = () => {
     return (
         <div className="min-h-screen flex bg-white">
 
-            {/* Left Side - Image (Flipped order visually on desktop, or just swap image) */}
+            {/* Left Side - Image */}
             <div className="hidden lg:block lg:w-1/2 relative overflow-hidden order-2">
                 <div className="absolute inset-0 bg-black/20 z-10" />
                 <img
-                    src='/images/1.jpg'
+                    src="/images/2.jpg"
                     alt="Wedding Venue"
                     className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-10 left-10 z-20 text-white">
-                    {/*<h2 className="text-4xl font-bold font-heading">Begin the Journey</h2>*/}
+                    <h2 className="text-4xl font-bold font-heading">Begin the Journey</h2>
                     <p className="text-lg font-sans mt-2 opacity-90">Create an account to manage your big day.</p>
                 </div>
             </div>
