@@ -1,10 +1,10 @@
 const { User } = require("../models"); // Match the name in models/index.js
 const ApiError = require("../utils/ApiError");
-const httpStatus = require("http-status"); // Fix: Removed {default: httpStatus}
+
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_wedding_planner_secret";
+const JWT_SECRET = process.env.JWT_SECRET
 
 class AuthService {
     static async registerUser(body) {
@@ -12,7 +12,7 @@ class AuthService {
 
         const checkExist = await User.findOne({ email: email.toLowerCase() });
         if (checkExist) {
-            throw new ApiError(httpStatus.BAD_REQUEST, "User Already Exists");
+            throw new ApiError(400, "User Already Exists");
         }
 
         await User.create({ name, email, password });
@@ -22,10 +22,14 @@ class AuthService {
 
     static async loginUser(body) {
         const { email, password } = body;
+        const models = require("../models");
+        console.log("models export =>", models);
+        const { User } = models;
+        console.log("User =>", User);
         const user = await User.findOne({ email: email.toLowerCase() });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
-            throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid Credentials");
+            throw new ApiError(401, "Invalid Credentials");
         }
 
         const token = jwt.sign(

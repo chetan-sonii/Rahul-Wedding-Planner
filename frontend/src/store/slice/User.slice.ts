@@ -1,24 +1,26 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { UserCredentials } from "../../types/auth";
 
+const initialState = {
+    user: null,
+    isAuthenticated: false
+};
 
-const initialState:{user:UserCredentials|undefined}={
-    user:undefined
-}
+export const UserSlice = createSlice({
+    name: "user",
+    initialState,
+    reducers: {
+        setUser: (state, action) => {
+            state.user = action.payload;
+            state.isAuthenticated = true;
+        },
+        // This is the missing export logic
+        clearUser: (state) => {
+            state.user = null;
+            state.isAuthenticated = false;
+        },
+    },
+});
 
-export const UserSlice =createSlice(
-    {
-        "name":"UserSlice",
-        initialState,
-        reducers:{
-            setUser:(state, action) => {
-                state.user = action.payload
-            },
-            removeUser:(state) => {
-                state.user = undefined
-            }
-        }
-    }
-)
-
-export const { setUser, removeUser } = UserSlice.actions
+// FIX: Explicitly export the action
+export const { setUser, clearUser } = UserSlice.actions;
+export default UserSlice.reducer;
