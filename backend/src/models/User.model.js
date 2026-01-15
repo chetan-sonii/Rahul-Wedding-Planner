@@ -1,42 +1,43 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto"); // Built-in Node module
 
 const schema = new mongoose.Schema({
+    // ... existing fields (name, email, password, etc.) ...
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
+    email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, default: "user", enum: ["user", "admin", "vendor"] },
-
-    // Vendor Shortlist
+    role: { type: String, default: "user" },
     favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Vendor" }],
+    checklist: [{ text: String, isCompleted: Boolean, dueDate: Date, note: String }],
+    partnerName: String,
+    weddingDate: Date,
+    budget: Number,
+    guestCount: Number,
 
-    // Wedding Details
-    partnerName: { type: String, default: "" },
-    weddingDate: { type: Date },
-    budget: { type: Number, default: 0 },
-    guestCount: { type: Number, default: 0 },
-
-    // RICH CHECKLIST SCHEMA
-    checklist: [{
-        text: String,
-        isCompleted: { type: Boolean, default: false },
-        dueDate: { type: Date }, // New Field
-        note: { type: String, default: "" } // New Field
-    }]
+    // NEW FIELDS FOR PASSWORD RESET
+    resetPasswordToken: String,
+    resetPasswordExpire: Date
 
 }, { timestamps: true });
 
-// ... (keep pre-save and isPasswordCorrect methods unchanged)
+// ... existing pre-save middleware ...
 
-schema.pre("save", async function(next) {
-    if (this.isModified("password")) {
-        this.password = await bcrypt.hash(this.password, 10);
-    }
-    next();
-});
+// NEW METHOD: Generate Reset Token
+schema.methods.getResetPasswordToken = function () {
+    // 1. Generate token
+    const resetToken = crypto.randomBytes(20).toString("hex");
 
-schema.methods.isPasswordCorrect = async function(candidatePassword) {
-    return await bcrypt.compare(candidatePassword, this.password);
+    // 2. Hash token and set to resetPasswordToken field
+    this.resetPasswordToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+    // 3. Set expire (10 minutes)
+    this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+    return resetToken;
 };
 
 module.exports = mongoose.model("User", schema);

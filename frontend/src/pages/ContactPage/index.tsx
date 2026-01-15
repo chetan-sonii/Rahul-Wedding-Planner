@@ -1,21 +1,30 @@
 import React, { useState } from 'react';
-import { FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaFacebook, FaInstagram, FaTwitter, FaPaperPlane } from 'react-icons/fa';
+import { FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaFacebook, FaInstagram, FaTwitter, FaPaperPlane, FaSpinner } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { AxiosClient } from '../../config/axiosClient'; // Import your client
 
-// Interface for Input Field Props
 interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label: string;
 }
 
 const ContactPage = () => {
     const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Simulate form submission
-        toast.success("Message sent successfully! We'll get back to you soon.");
-        setFormData({ name: '', email: '', subject: '', message: '' });
+        setLoading(true);
+        try {
+            await AxiosClient.post("/contact", formData);
+            toast.success("Message sent successfully! We'll get back to you soon.");
+            setFormData({ name: '', email: '', subject: '', message: '' });
+        } catch (error) {
+            toast.error("Failed to send message. Please try again.");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -24,9 +33,7 @@ const ContactPage = () => {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="min-h-screen bg-gray-50 font-sans pt-10 pb-20"
         >
             {/* Header Section */}
@@ -40,7 +47,7 @@ const ContactPage = () => {
             <div className="container mx-auto px-4 relative z-10">
                 <div className="max-w-6xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row">
 
-                    {/* Left: Contact Info */}
+                    {/* Left: Contact Info (Static) */}
                     <div className="md:w-2/5 bg-gray-900 text-white p-10 flex flex-col justify-between">
                         <div>
                             <h2 className="text-2xl font-bold font-heading mb-8">Contact Information</h2>
@@ -79,7 +86,7 @@ const ContactPage = () => {
                         </div>
                     </div>
 
-                    {/* Right: Contact Form */}
+                    {/* Right: Dynamic Contact Form */}
                     <div className="md:w-3/5 p-10 lg:p-14">
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -97,8 +104,9 @@ const ContactPage = () => {
                                     required
                                 />
                             </div>
-                            <button type="submit" className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-pink-700 transition-all flex items-center gap-2 shadow-lg shadow-pink-200">
-                                <FaPaperPlane /> Send Message
+                            <button disabled={loading} type="submit" className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-pink-700 transition-all flex items-center gap-2 shadow-lg shadow-pink-200 disabled:opacity-50">
+                                {loading ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
+                                {loading ? "Sending..." : "Send Message"}
                             </button>
                         </form>
                     </div>
@@ -109,14 +117,10 @@ const ContactPage = () => {
     );
 };
 
-// Fixed InputField with proper type
 const InputField = ({ label, ...props }: InputFieldProps) => (
     <div>
         <label className="block text-sm font-bold text-gray-700 mb-2">{label}</label>
-        <input
-            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-pink-100 transition-all"
-            {...props}
-        />
+        <input className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-pink-100 transition-all" {...props} />
     </div>
 );
 

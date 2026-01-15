@@ -1,13 +1,25 @@
-import { RiMailSendLine } from 'react-icons/ri'; // Swapped for a more relevant "Email" icon
+import { RiMailSendLine } from 'react-icons/ri';
 import { MdArrowBack } from 'react-icons/md';
 import * as yup from 'yup';
 import { ErrorMessage, Field, Form, Formik, FormikHelpers } from 'formik';
 import { Link } from 'react-router';
 import { motion } from 'framer-motion';
+import { AxiosClient } from '../../config/axiosClient';
+import { toast } from 'react-toastify';
+import { FaSpinner } from 'react-icons/fa';
 
-// Defined types outside component for cleaner code
+// 1. Define Form Interface
 interface ForgetPasswordFormProps {
     email: string;
+}
+
+// 2. Define Error Interface for Type Safety
+interface ApiErrorResponse {
+    response?: {
+        data?: {
+            message?: string;
+        };
+    };
 }
 
 const ForgetPasswordPage = () => {
@@ -27,18 +39,22 @@ const ForgetPasswordPage = () => {
         helper: FormikHelpers<ForgetPasswordFormProps>
     ) => {
         try {
-            // Simulate API call
-            console.log("Sending reset link to:", values.email);
+            // Call the actual API
+            await AxiosClient.post('/auth/forgot-password', values);
 
-            // Here you would normally trigger your API
-            // await api.auth.forgetPassword(values);
-
-            helper.setSubmitting(false);
             helper.resetForm();
-            alert("Reset link sent! (Check console)"); // Replace with Toastify later
+            toast.success("Reset link sent! Check your backend console.");
 
-        } catch (error) {
-            console.error(error);
+        } catch (error: unknown) {
+            // 3. FIX: Cast to specific type instead of 'any'
+            if (error instanceof Error) {
+                const apiError = error as ApiErrorResponse;
+                const msg = apiError.response?.data?.message || "Something went wrong";
+                toast.error(msg);
+            } else {
+                toast.error("An unexpected error occurred");
+            }
+        } finally {
             helper.setSubmitting(false);
         }
     };
@@ -98,9 +114,13 @@ const ForgetPasswordPage = () => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300"
+                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 items-center gap-2"
                             >
-                                {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                                {isSubmitting ? (
+                                    <>
+                                        <FaSpinner className="animate-spin" /> Sending...
+                                    </>
+                                ) : 'Send Reset Link'}
                             </button>
 
                             {/* Back to Login Link */}

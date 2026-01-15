@@ -8,7 +8,8 @@ import DashboardPage from "../pages/DashboardPage";
 import AboutPage from "../pages/AboutPage";
 import ContactPage from "../pages/ContactPage";
 import ProtectedRoutes from "./ProtectedRoutes";
-import VendorListingPage from "../pages/VendorListingPage"; // Import it
+import VendorListingPage from "../pages/VendorListingPage";
+import ResetPasswordPage from "../pages/ResetPasswordPage"; // Import it
 
 export const router = createBrowserRouter([
     {
@@ -33,6 +34,10 @@ export const router = createBrowserRouter([
             {
                 path: 'vendors',
                 Component: VendorListingPage
+            },
+            {
+                path: "reset-password/:token", // 👈 ADD THIS DYNAMIC ROUTE
+                Component: ResetPasswordPage
             },
         ]
     }

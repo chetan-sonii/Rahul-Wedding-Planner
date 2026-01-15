@@ -1,14 +1,14 @@
-const express = require("express")
-const { AuthController } = require("../controllers")
-const router = express.Router()
+const express = require("express");
+const router = express.Router();
+const AuthController = require("../controllers/Auth.controller");
+const authMiddleware = require("../middlewares/auth");
 
-// POST: /api/v1/auth/register --- register a user :201
+router.post("/register", AuthController.registerUser);
+router.post("/login", AuthController.loginUser);
+router.get("/profile", authMiddleware, AuthController.Profile);
 
-router.post("/register",AuthController.registerUser)
+// ADD THIS ROUTE
+router.post("/forgot-password", AuthController.forgotPassword);
+router.put("/reset-password/:token", AuthController.resetPassword);
 
-// POST: /api/v1/auth/login --- login a user :200
-
-router.post("/login",AuthController.loginUser)
-
-
-module.exports = router
+module.exports = router;
