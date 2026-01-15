@@ -1,21 +1,56 @@
+import React from 'react';
 import { FaWallet, FaCheckDouble, FaUsers, FaHeart } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
+// --- 1. Define Interfaces for Type Safety ---
+interface ChecklistItem {
+    _id: string;
+    text: string;
+    isCompleted: boolean;
+    dueDate?: string;
+    note?: string;
+}
+
+interface FavoriteVendor {
+    _id: string;
+    price: number;
+    // We only strictly need 'price' for calculations here,
+    // but good to have other fields if needed later.
+}
+
+interface UserData {
+    budget: number;
+    guestCount: number;
+    checklist: ChecklistItem[];
+    favorites: FavoriteVendor[];
+}
+
 interface Props {
-    user: any;
+    user: UserData; // Replaced 'any' with specific UserData
     onTabChange: (tab: string) => void;
 }
 
+interface StatCardProps {
+    icon: React.ReactNode;
+    bg: string;
+    label: string;
+    value: string | number;
+    sub: string;
+}
+
 const OverviewTab = ({ user, onTabChange }: Props) => {
-    // 1. Calculate Stats
+    // 2. Calculate Stats
+    // Safe navigation (?.) combined with defaults ensure no crashes
     const totalTasks = user.checklist?.length || 0;
-    const completedTasks = user.checklist?.filter((t: any) => t.isCompleted).length || 0;
+    const completedTasks = user.checklist?.filter((t) => t.isCompleted).length || 0;
     const taskProgress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
     const shortlistedCount = user.favorites?.length || 0;
 
-    // 2. Calculate "Estimated Cost" (Sum of shortlisted vendors)
-    const estimatedCost = user.favorites?.reduce((sum: number, vendor: any) => sum + (vendor.price || 0), 0) || 0;
+    // 3. Calculate "Estimated Cost" (Sum of shortlisted vendors)
+    // Typescript now knows 'vendor' has a 'price' because of the interface
+    const estimatedCost = user.favorites?.reduce((sum, vendor) => sum + (vendor.price || 0), 0) || 0;
+
     const budget = user.budget || 1; // Avoid divide by zero
     const budgetHealth = Math.min(Math.round((estimatedCost / budget) * 100), 100);
 
@@ -27,7 +62,7 @@ const OverviewTab = ({ user, onTabChange }: Props) => {
                     icon={<FaWallet className="text-white" />}
                     bg="bg-blue-500"
                     label="Total Budget"
-                    value={`₹${user.budget?.toLocaleString()}`}
+                    value={`₹${(user.budget || 0).toLocaleString()}`}
                     sub={`Est. Cost: ₹${estimatedCost.toLocaleString()}`}
                 />
                 <StatCard
@@ -96,7 +131,8 @@ const OverviewTab = ({ user, onTabChange }: Props) => {
                     </div>
 
                     <div className="space-y-4 flex-1">
-                        {user.checklist?.filter((t:any) => !t.isCompleted).slice(0, 3).map((task: any) => (
+                        {/* Filter pending tasks */}
+                        {user.checklist?.filter((t) => !t.isCompleted).slice(0, 3).map((task) => (
                             <div key={task._id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all">
                                 <div className="w-3 h-3 rounded-full bg-orange-400 shrink-0" />
                                 <div>
@@ -105,7 +141,7 @@ const OverviewTab = ({ user, onTabChange }: Props) => {
                                 </div>
                             </div>
                         ))}
-                        {(!user.checklist || user.checklist.filter((t:any) => !t.isCompleted).length === 0) && (
+                        {(!user.checklist || user.checklist.filter((t) => !t.isCompleted).length === 0) && (
                             <div className="h-full flex flex-col items-center justify-center text-gray-400">
                                 <FaCheckDouble className="text-4xl mb-2 opacity-20" />
                                 <p>All caught up!</p>
@@ -118,7 +154,8 @@ const OverviewTab = ({ user, onTabChange }: Props) => {
     );
 };
 
-const StatCard = ({ icon, bg, label, value, sub }: any) => (
+// UI Component with explicit types
+const StatCard = ({ icon, bg, label, value, sub }: StatCardProps) => (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg shadow-gray-200 ${bg}`}>
             {icon}
