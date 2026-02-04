@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router';
 import { AxiosClient } from '../../config/axiosClient';
 import { FaStar, FaMapMarkerAlt, FaFilter, FaSearch, FaTimes, FaPhoneAlt, FaEnvelope, FaHeart } from 'react-icons/fa';
@@ -65,7 +65,8 @@ const VendorListingPage = () => {
                 console.error("Could not fetch favorites", error);
             }
         };
-        fetchUserFavorites();
+        fetchUserFavorites().then(r =>
+        console.log(r));
     }, []);
 
     // 2. Fetch Cities
@@ -78,7 +79,8 @@ const VendorListingPage = () => {
                 console.error("Failed to load cities", err);
             }
         };
-        fetchCities();
+        fetchCities().then(r =>
+        console.log(r));
     }, []);
 
     // 3. Fetch Vendors
@@ -100,7 +102,8 @@ const VendorListingPage = () => {
                 setLoading(false);
             }
         };
-        fetchVendors();
+        fetchVendors().then(r =>
+        console.log(r),);
     }, [city, category, search]);
 
     // 4. Handle Shortlist (Toggle Logic)
