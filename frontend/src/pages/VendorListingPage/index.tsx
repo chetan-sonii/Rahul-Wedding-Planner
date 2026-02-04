@@ -58,8 +58,8 @@ const VendorListingPage = () => {
             try {
                 // Reuse dashboard endpoint to get favorites
                 const res = await AxiosClient.get('/user/dashboard', headers);
-                // Extract just the IDs
-                const ids = res.data.user.favorites.map((fav: any) => fav._id);
+                // FIX: Replaced 'any' with specific type { _id: string }
+                const ids = res.data.user.favorites.map((fav: { _id: string }) => fav._id);
                 setFavoriteIds(ids);
             } catch (error) {
                 console.error("Could not fetch favorites", error);

@@ -1,9 +1,8 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
-const crypto = require("crypto"); // Built-in Node module
+const crypto = require("crypto");
 
 const schema = new mongoose.Schema({
-    // ... existing fields (name, email, password, etc.) ...
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -15,28 +14,33 @@ const schema = new mongoose.Schema({
     budget: Number,
     guestCount: Number,
 
-    // NEW FIELDS FOR PASSWORD RESET
+    // Password Reset Fields
     resetPasswordToken: String,
     resetPasswordExpire: Date
 
 }, { timestamps: true });
 
-// ... existing pre-save middleware ...
+// --- MISSING MIDDLEWARE RESTORED ---
+schema.pre("save", async function (next) {
+    // Only hash the password if it has been modified (or is new)
+    if (!this.isModified("password")) return next();
 
-// NEW METHOD: Generate Reset Token
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
+
 schema.methods.getResetPasswordToken = function () {
-    // 1. Generate token
     const resetToken = crypto.randomBytes(20).toString("hex");
-
-    // 2. Hash token and set to resetPasswordToken field
     this.resetPasswordToken = crypto
         .createHash("sha256")
         .update(resetToken)
         .digest("hex");
-
-    // 3. Set expire (10 minutes)
     this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
-
     return resetToken;
 };
 
