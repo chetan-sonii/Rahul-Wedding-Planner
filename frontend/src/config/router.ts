@@ -9,7 +9,9 @@ import AboutPage from "../pages/AboutPage";
 import ContactPage from "../pages/ContactPage";
 import ProtectedRoutes from "./ProtectedRoutes";
 import VendorListingPage from "../pages/VendorListingPage";
-import ResetPasswordPage from "../pages/ResetPasswordPage"; // Import it
+import ResetPasswordPage from "../pages/ResetPasswordPage";
+import AdminLoginPage from "../pages/AdminLoginPage";
+import AdminDashboard from "../pages/AdminDashboard"; // <--- IMPORT THIS
 
 export const router = createBrowserRouter([
     {
@@ -36,9 +38,12 @@ export const router = createBrowserRouter([
                 Component: VendorListingPage
             },
             {
-                path: "reset-password/:token", // 👈 ADD THIS DYNAMIC ROUTE
+                path: "reset-password/:token",
                 Component: ResetPasswordPage
             },
+            { path: "admin/login", Component: AdminLoginPage },
+            { path: "admin/dashboard", Component: AdminDashboard },
+
         ]
     }
 ]);

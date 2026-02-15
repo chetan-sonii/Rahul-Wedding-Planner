@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router';
 import { AxiosClient } from '../../config/axiosClient';
 import { FaStar, FaMapMarkerAlt, FaFilter, FaSearch, FaTimes, FaPhoneAlt, FaEnvelope, FaHeart } from 'react-icons/fa';
@@ -7,7 +7,7 @@ import { CgSpinner } from 'react-icons/cg';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 
-// Types
+// 1. Updated Interface with Contact Info
 interface Vendor {
     _id: string;
     name: string;
@@ -33,10 +33,7 @@ const VendorListingPage = () => {
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [cities, setCities] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
-
-    // NEW: Store the IDs of vendors the user has liked
     const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-
     const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
 
     const city = searchParams.get('city') || '';
@@ -49,27 +46,22 @@ const VendorListingPage = () => {
         return token ? { headers: { Authorization: `Bearer ${token}` } } : null;
     };
 
-    // 1. Fetch User Favorites (So we know which hearts to paint Red)
     useEffect(() => {
         const fetchUserFavorites = async () => {
             const headers = getAuthHeaders();
-            if (!headers) return; // Not logged in
-
+            if (!headers) return;
             try {
-                // Reuse dashboard endpoint to get favorites
                 const res = await AxiosClient.get('/user/dashboard', headers);
-                // FIX: Replaced 'any' with specific type { _id: string }
+                // Fixed Type: Explicitly define the shape of the favorite object
                 const ids = res.data.user.favorites.map((fav: { _id: string }) => fav._id);
                 setFavoriteIds(ids);
             } catch (error) {
                 console.error("Could not fetch favorites", error);
             }
         };
-        fetchUserFavorites().then(r =>
-        console.log(r));
+        fetchUserFavorites();
     }, []);
 
-    // 2. Fetch Cities
     useEffect(() => {
         const fetchCities = async () => {
             try {
@@ -79,11 +71,9 @@ const VendorListingPage = () => {
                 console.error("Failed to load cities", err);
             }
         };
-        fetchCities().then(r =>
-        console.log(r));
+        fetchCities();
     }, []);
 
-    // 3. Fetch Vendors
     useEffect(() => {
         const fetchVendors = async () => {
             try {
@@ -102,24 +92,18 @@ const VendorListingPage = () => {
                 setLoading(false);
             }
         };
-        fetchVendors().then(r =>
-        console.log(r),);
+        fetchVendors();
     }, [city, category, search]);
 
-    // 4. Handle Shortlist (Toggle Logic)
     const handleShortlist = async (vendorId: string, e?: React.MouseEvent) => {
-        if (e) e.stopPropagation(); // Prevent opening modal if clicked on card heart
-
+        if (e) e.stopPropagation();
         const headers = getAuthHeaders();
         if (!headers) {
             toast.error("Please login to shortlist vendors");
             navigate("/login");
             return;
         }
-
-        // Optimistic UI Update (Change color immediately)
         const isCurrentlyLiked = favoriteIds.includes(vendorId);
-
         if (isCurrentlyLiked) {
             setFavoriteIds(prev => prev.filter(id => id !== vendorId));
             toast.info("Removed from shortlist");
@@ -127,15 +111,11 @@ const VendorListingPage = () => {
             setFavoriteIds(prev => [...prev, vendorId]);
             toast.success("Added to shortlist");
         }
-
         try {
             await AxiosClient.post("/user/favorites", { vendorId }, headers);
-            // Background sync not strictly needed if optimistic update works,
-            // but ensures consistency on refresh.
         } catch (error) {
             console.error("Shortlist error:", error);
             toast.error("Failed to update shortlist");
-            // Revert changes if API fails
             if (isCurrentlyLiked) setFavoriteIds(prev => [...prev, vendorId]);
             else setFavoriteIds(prev => prev.filter(id => id !== vendorId));
         }
@@ -151,8 +131,7 @@ const VendorListingPage = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-8 font-sans">
             <div className="container mx-auto px-4 flex flex-col lg:flex-row gap-8">
-
-                {/* SIDEBAR */}
+                {/* SIDEBAR FILTERS */}
                 <aside className="w-full lg:w-1/4 space-y-6">
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                         <div className="relative">
@@ -166,7 +145,6 @@ const VendorListingPage = () => {
                             />
                         </div>
                     </div>
-
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit sticky top-24">
                         <div className="flex items-center gap-2 mb-6 pb-4 border-b">
                             <FaFilter className="text-primary" />
@@ -222,7 +200,6 @@ const VendorListingPage = () => {
                                     onClick={() => setSelectedVendor(vendor)}
                                     className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 relative"
                                 >
-                                    {/* HEART ICON ON CARD */}
                                     <button
                                         onClick={(e) => handleShortlist(vendor._id, e)}
                                         className="absolute top-3 right-3 z-10 bg-white/90 p-2 rounded-full shadow-sm hover:scale-110 transition-transform"
@@ -237,9 +214,6 @@ const VendorListingPage = () => {
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                             onError={(e) => { (e.target as HTMLImageElement).src = `https://placehold.co/600x400?text=${vendor.name}`; }}
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                                            <span className="text-white text-sm font-medium">Click to view details</span>
-                                        </div>
                                         <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1 text-xs font-bold text-gray-800 shadow-sm">
                                             <FaStar className="text-yellow-400" /> {vendor.rating}
                                         </div>
@@ -287,7 +261,6 @@ const VendorListingPage = () => {
                                 <FaTimes />
                             </button>
 
-                            {/* HEART BUTTON INSIDE MODAL */}
                             <button
                                 onClick={() => handleShortlist(selectedVendor._id)}
                                 className="absolute top-4 right-16 z-10 bg-white/80 p-2.5 rounded-full hover:bg-white transition-all shadow-sm"
@@ -326,12 +299,19 @@ const VendorListingPage = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <button className="flex items-center justify-center gap-2 w-full border-2 border-primary text-primary font-bold py-3 rounded-xl hover:bg-pink-50 transition-colors">
-                                        <FaPhoneAlt /> Call Vendor
-                                    </button>
-                                    <button className="flex items-center justify-center gap-2 w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-pink-700 transition-colors shadow-lg shadow-pink-200">
-                                        <FaEnvelope /> Send Inquiry
-                                    </button>
+                                    {/* 2. Added Real Phone/Email Links */}
+                                    <a
+                                        href={`tel:${selectedVendor.contact_info?.phone || ''}`}
+                                        className="flex items-center justify-center gap-2 w-full border-2 border-primary text-primary font-bold py-3 rounded-xl hover:bg-pink-50 transition-colors"
+                                    >
+                                        <FaPhoneAlt /> Call {selectedVendor.contact_info?.phone || 'Vendor'}
+                                    </a>
+                                    <a
+                                        href={`mailto:${selectedVendor.contact_info?.email || ''}`}
+                                        className="flex items-center justify-center gap-2 w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-pink-700 transition-colors shadow-lg shadow-pink-200"
+                                    >
+                                        <FaEnvelope /> Email Inquiry
+                                    </a>
                                 </div>
                             </div>
                         </motion.div>
