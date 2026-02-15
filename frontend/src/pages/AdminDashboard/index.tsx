@@ -6,6 +6,7 @@ import AdminSidebar from './components/AdminSidebar';
 import AdminOverview from './tabs/AdminOverview';
 import AdminUsers from './tabs/AdminUsers';
 import AdminVendors from './tabs/AdminVendors';
+import AdminInquiries from './tabs/AdminInquiries';
 // You can create AdminInquiries.tsx similarly or leave as placeholder
 
 const AdminDashboard = () => {
@@ -37,7 +38,7 @@ const AdminDashboard = () => {
                 {activeTab === 'overview' && <AdminOverview />}
                 {activeTab === 'users' && <AdminUsers />}
                 {activeTab === 'vendors' && <AdminVendors />}
-                {activeTab === 'inquiries' && <div className="text-center py-20 text-gray-400">Inquiries Module Coming Soon</div>}
+                {activeTab === 'inquiries' && <AdminInquiries />}
             </main>
         </div>
     );
