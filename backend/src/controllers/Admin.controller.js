@@ -46,9 +46,12 @@ exports.getStats = CatchAsync(async (req, res) => {
     });
 });
 
-// --- 3. User Management ---
+// backend/src/controllers/Admin.controller.js
 exports.getAllUsers = CatchAsync(async (req, res) => {
-    const users = await User.find().select("-password").sort({ createdAt: -1 });
+    const users = await User.find()
+        .select("-password")
+        .populate("favorites") // <--- THIS IS REQUIRED TO SEE VENDOR DETAILS
+        .sort({ createdAt: -1 });
     res.status(200).json({ success: true, users });
 });
 
